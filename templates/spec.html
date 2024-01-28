@@ -1,0 +1,82 @@
+<!-- spec.html -->
+{% extends 'base.html' %}
+{% block title %} Log On {% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+    <div class="container">
+        <h1 class="heading"></h1>
+        <div class="row">
+            {% for post in posts %}
+                <div class="col-md-2">
+                    <div class="card">
+                        <h2 class="surname">{{ post['Surname'] }}</h2>
+                        {% if post['Logged'] == 'yes' %}
+                            <img src="{{ url_for('static', filename='fotos/galochka.png') }}" alt="Галочка" class="image">
+                        {% else  %}
+                            <img src="{{ url_for('static', filename='fotos/crestik.png') }}" alt="Крестик" class="image">
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Function to request and update data
+        function updateData() {
+            console.log('Updating data...');
+            socket.emit('update_data_request');
+        }
+
+        // Set up a timer to update data every 2 seconds
+        setInterval(updateData, 2000);
+
+        socket.on('update_data', function(data) {
+            console.log('Received updated data:');
+
+            // Parse the serialized data.posts back to a JavaScript object
+            var parsedPosts = JSON.parse(data.posts);
+
+            if (Array.isArray(parsedPosts)) {
+                console.log('Data.posts is an array:', parsedPosts);
+                for (const post of parsedPosts) {
+                    // Find the corresponding elements based on the post's Surname
+                    var cards = document.querySelectorAll('.card');
+
+                    console.log('cards=', cards);
+
+                    cards.forEach(card => {
+                        var surnameElement = card.querySelector('h2.surname');
+                        var imageElement = card.querySelector('img.image');
+
+                        console.log('surnameElement=', surnameElement);
+                        console.log('imageElement=', imageElement);
+
+                        if (surnameElement && imageElement) {
+                            // Check if the Surname matches the current post
+                            if (surnameElement.textContent.trim() === post.Surname.trim()) {
+                                // Update the elements with the values from the post object
+                                surnameElement.innerHTML = post.Surname;
+
+                                // Update image source and alt based on the 'Logged' property
+                                if (post.Logged === 'yes') {
+                                    imageElement.src = "{{ url_for('static', filename='fotos/galochka.png') }}";
+                                    imageElement.alt = 'Галочка';
+                                } else {
+                                    imageElement.src = "{{ url_for('static', filename='fotos/crestik.png') }}";
+                                    imageElement.alt = 'Крестик';
+                                }
+                            }
+                        }
+                    });
+                }
+            } else {
+                console.error('Data.posts is not an array. Type:', typeof parsedPosts);
+            }
+        });
+    </script>
+{% endblock %}
