@@ -1,0 +1,340 @@
+<!-- manage.html -->
+{% extends 'base.html' %}
+
+{% block title %} Manage {% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <div class="container" style="margin-top:2rem">
+        <!-- Centered Buttons Group with Adjusted Size and Spacing -->
+        <div class="d-flex justify-content-center mb-3 margin-top=">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary btn-lg" onclick="toggleAllCheckboxes('Reload')">Reload all</button>
+                <button type="button" class="btn btn-primary btn-lg ml-3" onclick="toggleAllCheckboxes('Shutdown')">Shutdown all</button>
+                <button type="button" class="btn btn-success btn-lg ml-3" onclick="gpupdate()">GpUpdate</button>
+                <button type="button" class="btn btn-success btn-lg ml-3" onclick="applyChanges()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div id="update-notification" class="alert alert-success" style="display: none; position: fixed; bottom: 20px; right: 20px;">
+            Changes applied successfully!
+        </div>
+
+        <!-- Margin before Search Bar -->
+        <div class="mb-3"></div>
+
+        <!-- Search Bar with Dropdown -->
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <label for="search-input" class="input-group-text">Search:</label>
+            </div>
+            <input type="text" id="search-input" class="form-control" oninput="searchData()">
+            <div class="input-group-append">
+                <select id="search-by" class="custom-select">
+                    <option value="All">All</option>
+                    <option value="0">Name</option>
+                    <option value="1">HostName</option>
+                    <option value="2">Domain</option>
+                    <option value="3">Ip</option>
+                    <option value="4">LastUpdate</option>
+                    <option value="5">LogOn</option>
+                    <option value="6">Reload</option>
+                    <option value="7">Shutdown</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table id="data-table" class="table table-striped table-bordered mt-3">
+            <thead>
+            <tr>
+                <th onclick="sortTable(0)" class="sortable">Name</th>
+                <th onclick="sortTable(1)" class="sortable">HostName</th>
+                <th onclick="sortTable(2)" class="sortable">Domain</th>
+                <th onclick="sortTable(3)" class="sortable">Ip</th>
+                <th onclick="sortTable(4)" class="sortable">LastUpdate</th>
+                <th onclick="sortTable(5)" class="sortable">LogOn</th>
+                <th onclick="sortTable(6)" class="sortable">Reload</th>
+                <th onclick="sortTable(7)" class="sortable">Shutdown</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in all_data %}
+                <tr>
+                    <td>{{ row['Surname'] }}</td>
+                    <td>{{ row['HostName'] }}</td>
+                    <td>{{ row['Domain'] }}</td>
+                    <td>{{ row['Ip'] }}</td>
+                    <td>{{ row['LastUpdate'] }}</td>
+                    <td>{{ '✔' if row['Logged'] == 'yes' else '✖' if row['Logged'] == 'no' else 'None' }}</td>
+                    <td>
+                        <input type="checkbox" data-hostname="{{ row['HostName'] }}" {% if row['Reload'] == 'yes' %}checked{% endif %} onclick="toggleCheckbox(this, '{{ row['HostName'] }}', 'Reload')">
+                    </td>
+                    <td>
+                        <input type="checkbox" data-hostname="{{ row['HostName'] }}" {% if row['Shutdown'] == 'yes' %}checked{% endif %} onclick="toggleCheckbox(this, '{{ row['HostName'] }}', 'Shutdown')">
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+
+    var checkboxChanges = {};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Обновленная функция toggleCheckbox
+    function toggleCheckbox(checkbox, hostname, action) {
+        // Update the backend or perform any other necessary actions here
+        console.log(`Toggling ${action} for ${hostname} to ${checkbox.checked ? 'yes' : 'no'}`);
+        console.log(checkboxChanges);
+        // Track checkbox changes
+        if (!checkboxChanges[hostname]) {
+            checkboxChanges[hostname] = {};
+        }
+        checkboxChanges[hostname][action] = checkbox.checked ? 'yes' : 'no';
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    function applyChanges() {
+        // Send an AJAX request to the Flask server
+        fetch('/apply_changes', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                changes: checkboxChanges,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response from the server
+            console.log("Apply Changes request successful:", data);
+            // Optionally, you can update the frontend based on the server's response
+        })
+        .catch(error => {
+            // Handle errors
+            console.error("Error sending Apply Changes request:", error);
+        });
+        showUpdateNotification();
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    function toggleAllCheckboxes(columnName) {
+        var checkboxes = document.querySelectorAll(`input[type="checkbox"][onclick*="${columnName}"]`);
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            toggleCheckbox(checkbox, checkbox.getAttribute('data-hostname'), columnName);
+        });
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    function gpupdate() {
+        // Assuming you have a way to get the hostname, modify this part as needed
+        var hostname = "example_hostname";
+
+        // Send an AJAX request to the Flask server
+        fetch('/gpupdate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ hostname: hostname }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response from the server
+            console.log("Gpupdate request successful:", data);
+            // Optionally, you can update the frontend based on the server's response
+        })
+        .catch(error => {
+            // Handle errors
+            console.error("Error sending Gpupdate request:", error);
+        });
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to show update notification
+    function showUpdateNotification() {
+        var notification = document.getElementById("update-notification");
+        notification.style.display = "block";
+        setTimeout(function () {
+            notification.style.display = "none";
+        }, 3000);
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to check if a row is visible based on the filter
+    function isRowVisible(row) {
+        return row.style.display !== "none";
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to filter data based on the selected column
+    function searchData() {
+        var input, filter, table, tbody, tr, td, i, txtValue, searchBy;
+        input = document.getElementById("search-input");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("data-table");
+        tbody = table.getElementsByTagName("tbody");
+        tr = tbody[0].getElementsByTagName("tr");
+        searchBy = document.getElementById("search-by").value; // Get the selected search column
+
+        // Loop through all table rows and hide those that don't match the search query
+        for (i = 0; i < tr.length; i++) {
+            var found = false;
+            for (var j = 0; j < tr[i].cells.length; j++) {
+                td = tr[i].cells[j];
+                if (td && (searchBy === "All" || j === parseInt(searchBy))) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            tr[i].style.display = found ? "" : "none";
+        }
+
+        // Update striping for all rows
+        updateStriping(tbody[0]);
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to update striping based on the order after filtering and sorting
+    function updateStriping(tbody) {
+        var visibleRows = Array.from(tbody.getElementsByTagName("tr")).filter(row => row.style.display !== "none");
+
+        for (var i = 0; i < visibleRows.length; i++) {
+            var id = "row-" + (i + 1); // Generate unique ID for each visible row
+            visibleRows[i].id = id;
+
+            // Color rows based on order after filtering
+            if (i % 2 === 0) {
+                visibleRows[i].style.backgroundColor = "rgba(0, 123, 255, 0.1)";
+            } else {
+                visibleRows[i].style.backgroundColor = "rgba(255, 255, 255, 1)";
+            }
+        }
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to sort the table by column index
+    function sortTable(columnIndex) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir;
+        table = document.getElementById("data-table");
+        switching = true;
+        dir = table.rows[0].cells[columnIndex].classList.contains("sorted-asc") ? "desc" : "asc";
+
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+
+            for (i = 1; i < rows.length - 1; i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("td")[columnIndex];
+                y = rows[i + 1].getElementsByTagName("td")[columnIndex];
+
+                var xValue = x.innerHTML.toLowerCase();
+                var yValue = y.innerHTML.toLowerCase();
+
+                if (dir === "asc" && xValue > yValue) {
+                    shouldSwitch = true;
+                    break;
+                } else if (dir === "desc" && xValue < yValue) {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+            }
+        }
+
+        // Remove "sorted" class from all th elements
+        var thElements = document.querySelectorAll("#data-table th");
+        thElements.forEach(function (th) {
+            th.classList.remove("sorted-asc", "sorted-desc");
+        });
+
+        // Add "sorted" class to the clicked th element
+        table.rows[0].cells[columnIndex].classList.add(dir === "asc" ? "sorted-asc" : "sorted-desc");
+    }
+    </script>
+
+    <style>
+        /* Add your custom styles specific to the Finder page here */
+        #data-table {
+            width: 100%;
+        }
+
+        th, td {
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bff;
+            color: #ffffff;
+            cursor: pointer;
+            position: relative;
+        }
+
+        th:hover {
+            background-color: #0056b3;
+        }
+
+        th.sorted-asc::after {
+            content: " ▲";
+            position: absolute;
+            right: 8px;
+        }
+
+        .btn {
+            transition: all 0.3s ease-in-out;
+        }
+
+        th.sorted-desc::after {
+            content: " ▼";
+            position: absolute;
+            right: 8px;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        /* Additional styles for the search bar */
+        .input-group-text {
+            font-size: 18px; /* Adjust the font size as needed */
+            background-color: #007bff;
+            color: #ffffff;
+            border: 1px solid #007bff;
+        }
+
+        
+        .form-control {
+            font-size: 18px; /* Adjust the font size as needed */
+        }
+
+        .custom-select {
+            font-size: 18px; /* Adjust the font size as needed */
+            background-color: #007bff; /* Same color as the search button */
+            color: #ffffff;
+            border: 1px solid #007bff; /* Same border color as the search button */
+        }
+
+	.custom-select option {
+            background-color: #007bff; /* Same background color for options as the search button */
+            color: #ffffff;
+        }
+
+        /* Additional styles for the notification box */
+        #update-notification {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            z-index: 1000; /* Ensure it appears on top of other elements */
+        }
+    </style>
+
+{% endblock %}

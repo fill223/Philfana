@@ -1,0 +1,106 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+    <!-- Set the favicon (icon in the browser tab) -->
+    <link rel="icon" href="{{ url_for('static', filename='fotos/lama.png') }}" type="image/png">
+
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          crossorigin="anonymous">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dataTables.bootstrap4.min.css') }}">
+
+    <title>{% block title %} {% endblock %}</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-md navbar-light bg-light">
+        <div class="container text-center">
+            <div class="navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('spec')}}" style="font-size: 36px; font-weight: 600; color: #4CAF50; margin-right: 2rem;" id="spec-link">Log On</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('winder')}}" style="font-size: 36px; font-weight: 600; color: #FFC107; margin-right: 2rem;" id="winder-link">Winder</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('manage')}}" style="font-size: 36px; font-weight: 600; color: #2196F3; margin-right: 2rem;" id="manage-link">Manage</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Logout button in a new row -->
+            <div class="row">
+                <div class="col text-right">
+                    {% if 'user_id' in session %}
+                        <a class="btn btn-danger custom-logout-button" href="{{ url_for('logout') }}" style="font-size: 20px; padding: 10px 20px; font-weight: bold;">Logout</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="container">
+        {% block content %} {% endblock %}
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <!-- Popper.js, Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+
+
+    <script>
+        // Get the current page URL
+        var currentPage = window.location.pathname.split('/').pop();
+
+        // Add 'active' class to the corresponding link
+        var activeLink = document.getElementById(currentPage + '-link');
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    </script>
+
+
+    <style>
+
+        .navbar-nav .nav-link {
+            position: relative;
+            transition: color 0.3s, transform 0.3s;
+            font-size: 18px; /* Adjust the default font size as needed */
+            text-decoration: none; /* Remove default underline */
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #007bff;
+            transform: scale(1.2); /* Adjust the scale factor as needed */
+        }
+
+        .navbar-nav .nav-link:hover::before {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+
+        /* Additional style to remove underline when not hovering */
+        .navbar-nav .nav-link.active {
+            text-decoration: underline;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!-- sanya.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ультраважнаякнопка!!!!</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #3498db;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="openGif()">Ебани его!</button>
+
+    <script>
+        function openGif() {
+            window.location.href = '/gif';
+        }
+    </script>
+</body>
+</html>

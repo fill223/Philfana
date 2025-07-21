@@ -1,0 +1,321 @@
+<!-- finder.html -->
+{% extends 'base.html' %}
+
+{% block title %} Winder {% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+    <div class="container mt-4">
+        <!-- Search Bar with Dropdown -->
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <label for="search-input" class="input-group-text">Search:</label>
+            </div>
+            <input type="text" id="search-input" class="form-control " oninput="searchData()">
+            <div class="input-group-append">
+                <select id="search-by" class="custom-select">
+                    <option value="All">All</option>
+                    <option value="0">Surname</option>
+                    <option value="1">Domain</option>
+                    <option value="2">Ip</option>
+                    <option value="3">Logged</option>
+                </select>
+            </div>
+        </div>
+        <!-- Table -->
+        <table id="data-table" class="table table-striped table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)" class="sortable">Name</th>
+                    <th onclick="sortTable(1)" class="sortable">User</th>
+                    <th onclick="sortTable(2)" class="sortable">Domain</th>
+                    <th onclick="sortTable(3)" class="sortable">Ip</th>
+                    <th onclick="sortTable(4)" class="sortable">LogOn</th>
+                    <th>Photo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in all_data %}
+                    <tr>
+                        <td>{{ row['Surname'] }}</td>
+                        <td>{{ row['UserName'] }}</td>
+                        <td>{{ row['Domain'] }}</td>
+                        <td>{{ row['Ip'] }}</td>
+                        <td>{{ '✔' if row['Logged'] == 'yes' else '✖' if row['Logged'] == 'no' else 'None' }}</td>
+                        <td>
+                            {% if row['UserName'] %}
+                                <img src="{{ url_for('get_photo', username=row['UserName']) }}" alt="User Photo">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='fotos/noname.jpg') }}" alt="No Photo Available">
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+
+    var socket = io.connect('http://philfana.ru');
+
+    // Function to request and update Winder data
+    function updateWinderData() {
+        console.log('Updating Winder data...');
+        socket.emit('update_winder_data_request');
+    }
+
+    // Set up a timer to update data every 2 seconds
+    setInterval(updateWinderData, 2000);
+
+    socket.on('update_winder_data', function (data) {
+        console.log('Received updated Winder data:');
+
+        // Parse the serialized data.winder_data back to a JavaScript object
+        var parsedWinderData = JSON.parse(data.winder_data);
+
+        if (Array.isArray(parsedWinderData)) {
+            console.log('Data.winder_data is an array:', parsedWinderData);
+            for (const winderRow of parsedWinderData) {
+                // Find the corresponding elements based on the HostName
+                var rows = document.querySelectorAll('#data-table tbody tr');
+
+                console.log('rows=', rows);
+
+                rows.forEach(row => {
+                    var hostnameElement = row.querySelector('td:nth-child(2)'); // Adjust the column index based on your HTML structure
+                    var logonElement = row.querySelector('td:nth-child(6)'); // Adjust the column index based on your HTML structure
+
+                    console.log('hostnameElement=', hostnameElement);
+                    console.log('logonElement=', logonElement);
+
+                    if (hostnameElement && logonElement) {
+                        // Check if the HostName matches the current Winder row
+                        if (hostnameElement.textContent.trim() === winderRow.HostName.trim()) {
+                            // Update the LogOn element with the value from the Winder row object
+                            logonElement.innerHTML = winderRow.Logged === 'yes' ? '✔' : '✖';
+                        }
+                    }
+                });
+            }
+        } else {
+            console.error('Data.winder_data is not an array. Type:', typeof parsedWinderData);
+        }
+    });
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to check if a row is visible based on the filter
+    function isRowVisible(row) {
+        return row.style.display !== "none";
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to filter data based on the selected column
+    function searchData() {
+        var input, filter, table, tbody, tr, td, i, txtValue, searchBy;
+        input = document.getElementById("search-input");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("data-table");
+        tbody = table.getElementsByTagName("tbody");
+        tr = tbody[0].getElementsByTagName("tr");
+        searchBy = document.getElementById("search-by").value; // Get the selected search column
+
+        // Loop through all table rows and hide those that don't match the search query
+        for (i = 0; i < tr.length; i++) {
+            var found = false;
+            for (var j = 0; j < tr[i].cells.length; j++) {
+                td = tr[i].cells[j];
+                if (td && (searchBy === "All" || j === parseInt(searchBy))) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            tr[i].style.display = found ? "" : "none";
+        }
+
+        // Update striping for all rows
+        updateStriping(tbody[0]);
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Function to update striping based on the order after filtering and sorting
+    function updateStriping(tbody) {
+        var visibleRows = Array.from(tbody.getElementsByTagName("tr")).filter(row => row.style.display !== "none");
+
+        for (var i = 0; i < visibleRows.length; i++) {
+            var id = "row-" + (i + 1); // Generate unique ID for each visible row
+            visibleRows[i].id = id;
+
+            // Color rows based on order after filtering
+            if (i % 2 === 0) {
+                visibleRows[i].style.backgroundColor = "rgba(0, 123, 255, 0.1)";
+            } else {
+                visibleRows[i].style.backgroundColor = "rgba(255, 255, 255, 1)";
+            }
+        }
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    function sortTable(columnIndex) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("data-table");
+        switching = true;
+        dir = "asc";
+
+        // Check if the column is already sorted, and toggle the direction accordingly
+        if (table.rows[0].cells[columnIndex].classList.contains("sorted-asc")) {
+            dir = "desc";
+        }
+
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+
+            for (i = 1; i < rows.length - 1; i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("td")[columnIndex];
+                y = rows[i + 1].getElementsByTagName("td")[columnIndex];
+
+                var xValue = x.innerHTML.toLowerCase();
+                var yValue = y.innerHTML.toLowerCase();
+
+                if ((dir === "asc" && xValue > yValue) || (dir === "desc" && xValue < yValue)) {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount === 0 && dir === "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+
+        // Remove "sorted" class from all th elements
+        var thElements = document.querySelectorAll("#data-table th");
+        thElements.forEach(function (th) {
+            th.classList.remove("sorted-asc", "sorted-desc");
+        });
+
+        // Add "sorted" class to the clicked th element
+        table.rows[0].cells[columnIndex].classList.add(dir === "asc" ? "sorted-asc" : "sorted-desc");
+        // Update striping for all rows after sorting
+        updateStriping(table.getElementsByTagName("tbody")[0]);
+    }
+    </script>
+
+    <style>
+    /* Add your custom styles specific to the Finder page here */
+    #data-table {
+        width: 100%;
+    }
+
+
+    #data-table tbody tr {
+    height: 138px; /* Adjust the height as needed */
+    }
+
+    .custom-select:focus {
+    box-shadow: none;
+    border-color: #ced4da; /* Set the desired border color */
+    }
+
+    th, td {
+        text-align: center;
+        vertical-align: middle !important; /* Center text vertically */
+        font-size: 20px; /* Adjust the font size as needed */
+        font-weight: bold; /* Add bold style */
+    }
+
+
+    th {
+        background-color: #007bff;
+        color: #ffffff;
+        cursor: pointer;
+        position: relative;
+    }
+
+    th:hover {
+        background-color: #0056b3;
+    }
+
+    th.sorted-asc::after {
+        content: " ▲";
+        position: absolute;
+        right: 8px;
+    }
+
+    .btn {
+        transition: all 0.3s ease-in-out;
+    }
+
+    th.sorted-desc::after {
+        content: " ▼";
+        position: absolute;
+        right: 8px;
+    }
+
+    #search-input:focus {
+    box-shadow: none;
+    border-color: #ced4da; /* Set the desired border color */
+    }
+
+    .form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da; /* Set the desired border color */
+    }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    /* Additional styles for the search bar */
+    .input-group-text {
+        font-size: 18px; /* Adjust the font size as needed */
+        background-color: #007bff;
+        color: #ffffff;
+        border: 1px solid #007bff;
+    }
+
+    .input-group-text:hover {
+        background-color: #0056b3;
+        border: 1px solid #0056b3;
+    }
+
+    .form-control {
+        font-size: 18px; /* Adjust the font size as needed */
+    }
+
+    .custom-select {
+        font-size: 18px; /* Adjust the font size as needed */
+        background-color: #007bff; /* Same color as the search button */
+        color: #ffffff;
+        border: 1px solid #007bff; /* Same border color as the search button */
+    }
+
+    .custom-select:hover {
+        background-color: #0056b3; /* Same hover color as the search button */
+        border: 1px solid #0056b3; /* Same hover border color as the search button */
+    }
+
+    .custom-select option {
+        background-color: #007bff; /* Same background color for options as the search button */
+        color: #ffffff;
+    }
+
+    /* Additional styles for the notification box */
+    #update-notification {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        z-index: 1000; /* Ensure it appears on top of other elements */
+    }
+    </style>
+
+{% endblock %}
