@@ -9,19 +9,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SERVER_HOST }}
-          username: ${{ secrets.DEPLOY_SERVER_USER }}
-          key: ${{ secrets.DEPLOY_SERVER_SSH_KEY }}
-          port: 22
-          script: |
-            cd /home/administrator/compose-root
-            git pull
-            cd Philfana && git pull || echo "Philfana repo not updated"
-            cd ../WB && git pull || echo "WB repo not updated"
-            cd ..
-            docker compose down
-            docker compose build
-            docker compose up -d
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Pull latest changes in repositories
+        run: |
+          cd /home/administrator/compose-root/Philfana && git pull || echo "Philfana repo not updated"
+          cd /home/administrator/compose-root/WB && git pull || echo "WB repo not updated"
+
+      - name: Rebuild and restart Docker Compose
+        run: |
+          cd /home/administrator/compose-root
+          docker compose down
+          docker compose build
+          docker compose up -d
