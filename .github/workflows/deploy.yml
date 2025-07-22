@@ -20,6 +20,6 @@ jobs:
       - name: Rebuild and restart Docker Compose
         run: |
           cd /home/administrator/compose-root
-          docker compose down
-          docker compose build
-          docker compose up -d
+          docker-compose down
+          docker-compose build
+          docker-compose up -d
