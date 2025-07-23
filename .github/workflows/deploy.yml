@@ -1,25 +1,27 @@
-name: Deploy Docker Compose
+name: Deploy to Remote Server
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Pull latest changes in repositories
-        run: |
-          cd /home/administrator/compose-root/Philfana && git pull || echo "Philfana repo not updated"
-          cd /home/administrator/compose-root/WB && git pull || echo "WB repo not updated"
-
-      - name: Rebuild and restart Docker Compose
-        run: |
-          cd /home/administrator/compose-root
-          docker-compose down
-          docker-compose build
-          docker-compose up -d
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SERVER_HOST }}
+          username: ${{ secrets.DEPLOY_SERVER_USER }}
+          key: ${{ secrets.DEPLOY_SERVER_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SERVER_PORT }}
+          script: |
+            cd /home/administrator/compose-root
+            git pull || true
+            cd Philfana && git pull || echo "Philfana not updated"
+            cd ../WB && git pull || echo "WB not updated"
+            cd ..
+            docker-compose down
+            docker-compose build
+            docker-compose up -d
