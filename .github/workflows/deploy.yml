@@ -19,8 +19,8 @@ jobs:
           script: |
             cd /home/administrator/compose-root
             git pull || true
-            cd ../Philfana && git pull || echo "Philfana not updated"
-            cd ../WB && git pull || echo "WB not updated"
+            cd /Philfana && git pull || echo "Philfana not updated"
+            cd /WB && git pull || echo "WB not updated"
             cd ..
             docker-compose down
             docker-compose build
