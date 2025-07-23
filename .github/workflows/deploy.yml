@@ -16,11 +16,34 @@ jobs:
           username: ${{ secrets.DEPLOY_SERVER_USER }}
           key: ${{ secrets.DEPLOY_SERVER_SSH_KEY }}
           port: ${{ secrets.DEPLOY_SERVER_PORT }}
-          script: |
-            cd /home/administrator/compose-root
-            cd Philfana 
-            cd WB 
-            cd ..
-            docker-compose down
-            docker-compose build
-            docker-compose up -d
+          script:
+            echo "📁 Переход в директорию проекта"
+            cd /home/administrator/compose-root || { echo "❌ Не удалось перейти в compose-root"; exit 1; }
+
+            echo "🔄 Обновление WB"
+            if [ -d WB ]; then
+              cd WB && git pull || echo "⚠️  Не удалось обновить WB"
+              cd ..
+            else
+              echo "⚠️  Папка WB не найдена"
+            fi
+
+            echo "🔄 Обновление Philfana"
+            if [ -d Philfana ]; then
+              cd Philfana && git pull || echo "⚠️  Не удалось обновить Philfana"
+              cd ..
+            else
+              echo "⚠️  Папка Philfana не найдена"
+            fi
+
+            echo "🛑 Остановка старых контейнеров"
+            docker-compose down || echo "⚠️  docker-compose down завершился с ошибкой"
+
+            echo "⚙️ Сборка образов"
+            docker-compose build || { echo "❌ Сборка не удалась"; exit 1; }
+
+            echo "🚀 Запуск контейнеров"
+            docker-compose up -d || { echo "❌ Не удалось запустить контейнеры"; exit 1; }
+
+            echo "✅ Деплой завершён"
+
