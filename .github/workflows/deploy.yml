@@ -16,7 +16,7 @@ jobs:
           username: ${{ secrets.DEPLOY_SERVER_USER }}
           key: ${{ secrets.DEPLOY_SERVER_SSH_KEY }}
           port: ${{ secrets.DEPLOY_SERVER_PORT }}
-          script:
+          script: |
             echo "📁 Переход в директорию проекта"
             cd /home/administrator/compose-root || { echo "❌ Не удалось перейти в compose-root"; exit 1; }
 
@@ -46,4 +46,3 @@ jobs:
             docker-compose up -d || { echo "❌ Не удалось запустить контейнеры"; exit 1; }
 
             echo "✅ Деплой завершён"
-
